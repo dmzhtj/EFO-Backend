@@ -117,6 +117,7 @@ class FlaskDisplay(UseCase.Display):
             user.ident = generate_password_hash(request.form.get("password"))
             user.deleted = False
             user.last_login = datetime.now()
+            user.registration_reason = request.form.get("reason","").strip()
             user.is_admin = False
             user.is_legal = None
             self.dist.update([user])
@@ -309,8 +310,17 @@ class AdminBlueprint(UseCase.Display):
             flash("Thank you, " + user.username + ". No more " + type + " data to review now.")
             return redirect("/admin/")
         object = object[0]
+        registration = None
         if type == "user":
-            data = object.thumbnail
+            registration = {
+                "id": object.id,
+                "username": object.username,
+                "registered": object.last_login,
+                "status": "Pending",
+                "is_admin": object.is_admin,
+                "reason": object.registration_reason or "No application reason was saved for this account."
+            }
+            data = object.registration_reason or ""
         elif type == "article":
             dto = ArticleDTO()
             dto.extract(object,None)
@@ -318,7 +328,7 @@ class AdminBlueprint(UseCase.Display):
         elif type == "comment":
             data = object.content
         links = externallinks(data)
-        return render_template("admin/review.html",user=user,data=data,id=object.id,csrftoken=getcsrftoken(),links=links,version=GENERAL.APP_VERSION)
+        return render_template("admin/review.html",user=user,data=data,id=object.id,csrftoken=getcsrftoken(),links=links,registration=registration,type=type,version=GENERAL.APP_VERSION)
     def modify(self):
         user = self.dist.get([UseCase.Entity.Reference("user","id",int(session.get("user",-1)))])[0]
         if not user:

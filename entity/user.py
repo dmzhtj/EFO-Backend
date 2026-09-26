@@ -5,6 +5,7 @@ class User(Interface):
     logined = None
     is_admin = None
     last_login = None
+    registration_reason = None
     is_legal = None
     deleted = None
     def login() -> None:...

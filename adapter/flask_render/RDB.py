@@ -5,6 +5,7 @@ from adapter.settings import DATA
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from sqlalchemy import inspect,text
 db = SQLAlchemy()
 
 class User(db.Model):
@@ -15,6 +16,7 @@ class User(db.Model):
     is_legal = db.Column(db.Boolean,nullable=True)
     deleted = db.Column(db.Boolean,nullable=False,default=False)
     last_login = db.Column(db.DateTime,nullable=False,default=datetime.now)
+    registration_reason = db.Column(db.UnicodeText,nullable=True)
     thumbnail = db.Column(db.String(DATA.THUMB_SIZE),nullable=True)
 class Article(db.Model):
     id = db.Column(db.Integer,primary_key=True)
@@ -42,7 +44,7 @@ class RDB(UseCase.Entity.Container):
         if type == "user":
             queryclass = User
             resclass = UseCase.User
-            fields = ["deleted","id","ident","is_admin","is_legal","last_login","username"]
+            fields = ["deleted","id","ident","is_admin","is_legal","last_login","registration_reason","username"]
         elif type == "article":
             queryclass = Article
             resclass = UseCase.Article
@@ -144,3 +146,9 @@ class RDB(UseCase.Entity.Container):
             db.session.add(user)
             db.session.commit()
         return user.thumbnail
+
+def ensure_registration_reason_column():
+    columns = {column["name"] for column in inspect(db.engine).get_columns(User.__tablename__)}
+    if "registration_reason" not in columns:
+            with db.engine.begin() as connection:
+                connection.execute(text("ALTER TABLE user ADD COLUMN registration_reason TEXT"))

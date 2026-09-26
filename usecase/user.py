@@ -4,6 +4,7 @@ from usecase.lib import modify
 class User(Entity.User):
     container:Entity.Container = None
     ident = None
+    registration_reason = None
     def create(self,username,identification,login):
         self.username = username
         self.ident = identification
