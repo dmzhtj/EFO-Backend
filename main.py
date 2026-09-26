@@ -12,4 +12,6 @@ with disp.app.app_context():
 dist = RandDistribute()
 dist.containter = rdb
 disp.set_dist(dist)
-disp.run()
+
+if __name__ == "__main__":
+    disp.run()
