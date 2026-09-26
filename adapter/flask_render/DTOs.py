@@ -59,9 +59,9 @@ class ArticleDTO(DataStructure):
         else:
             self.passed = choice([True,False])
     def imgsrc(self):
-        return BeautifulSoup(self.body).img.attrs["src"]
+        return BeautifulSoup(self.body, "html.parser").img.attrs["src"]
     def text(self):
-        return BeautifulSoup(self.body).getText()
+        return BeautifulSoup(self.body, "html.parser").getText()
 class CommentDTO(DataStructure):
     id = None
     user = None
