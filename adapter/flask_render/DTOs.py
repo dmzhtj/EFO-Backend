@@ -24,6 +24,10 @@ class ArticleDTO(DataStructure):
     description = None
     ai = None
     category = None
+    music_title = None
+    music_artist = None
+    music_album = None
+    cover = None
     date = None
     user = None
     type = None                             # Just for exp page.
@@ -40,6 +44,10 @@ class ArticleDTO(DataStructure):
         self.ai = dic.get("ai",True)
         self.category = dic.get("category","Unknown")
         self.type = dic.get("type","text")
+        self.music_title = dic.get("music_title","")
+        self.music_artist = dic.get("music_artist","")
+        self.music_album = dic.get("music_album","")
+        self.cover = dic.get("cover","")
         self.user = UserDTO(user)
     def score(self,score):
         if score >= 0.5:

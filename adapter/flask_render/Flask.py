@@ -6,6 +6,9 @@ from usecase.usecase import UseCase
 from adapter.flask_render.DTOs import *
 from adapter.lib import *
 from datetime import datetime
+from pathlib import Path
+from mutagen import MutagenError
+from mutagen.flac import FLAC
 from htmlmin import minify
 from markdown import markdown
 def after_request(response):
@@ -191,26 +194,62 @@ class FlaskDisplay(UseCase.Display):
                 abort(400)
             if not chkcsrftoken(request.form.get("csrftoken")):
                 abort(403)
+            media_type = request.form.get("type")
+            if media_type not in ["text","image","video","audio"]:
+                abort(400)
             if request.form.get("type") == "text":
                 if not request.form.get("content"):
                     abort(400)
                 content = markdown(request.form.get("content"))
-            elif request.form.get("type") in ["image","video","audio"]:
-                if not request.form.get("type") in request.files:
+            else:
+                media_file = request.files.get(media_type)
+                if not media_file or not media_file.filename:
                     abort(400)
                 filename = randfilename()
-                request.files.get(request.form.get("type")).save(filename)
-                if request.form.get("type") == "image":
+                media_file.save(filename)
+                if media_type == "image":
                     content = f"""<img src="/{filename}"/>"""
-                elif request.form.get("type") == "video":
+                elif media_type == "video":
                     content = f"""<video controls preload src="/{filename}"></video>"""
                 else:                           # audio
                     content = f"""<audio controls preload src="/{filename}"></audio>"""
+                    cover = ""
+                    music_title = Path(media_file.filename).stem
+                    music_artist = ""
+                    music_album = ""
+                    if Path(media_file.filename).suffix.lower() == ".flac":
+                        try:
+                            flac = FLAC(filename)
+                        except MutagenError:
+                            Path(filename).unlink(missing_ok=True)
+                            abort(400, description="Could not read metadata from the uploaded FLAC file.")
+                        music_title = (flac.get("title") or [music_title])[0]
+                        music_artist = (flac.get("artist") or [""])[0]
+                        music_album = (flac.get("album") or [""])[0]
+                        if flac.pictures:
+                            picture = flac.pictures[0]
+                            suffix = {
+                                "image/jpeg": ".jpg",
+                                "image/png": ".png",
+                                "image/gif": ".gif",
+                                "image/webp": ".webp"
+                            }.get(picture.mime.lower())
+                            if suffix:
+                                cover_path = randfilename() + suffix
+                                Path(cover_path).write_bytes(picture.data)
+                                cover = "/" + cover_path
             article = UseCase.Article()
             dic = {"ai":True if request.form.get("ai") else False,
                     "description":request.form.get("description-" + request.form.get("type"),""),
                     "type":request.form.get("type"),
                     "category":request.form.get("category").capitalize()}
+            if request.form.get("type") == "audio":
+                dic.update({
+                    "music_title":music_title,
+                    "music_artist":music_artist,
+                    "music_album":music_album,
+                    "cover":cover
+                })
             article.content = json.dumps(dic) + "\n" + content
             article.date = datetime.now()
             article.user = UseCase.Entity.Reference("user","id",user.id)
